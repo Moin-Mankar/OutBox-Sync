@@ -1,4 +1,4 @@
-package com.moinmankar.outboxsync.Entity;
+package com.moinmankar.outboxsync.enums;
 
 public enum EventStatus {
     PENDING,
