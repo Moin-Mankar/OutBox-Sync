@@ -85,9 +85,11 @@ public class OrderService {
 
         OutboxEvent outboxEvent = new OutboxEvent();
 
+        outboxEvent.setId(UUID.randomUUID());
         outboxEvent.setEventType(EventType.ORDER_CREATED);
 
         OrderCreatedEvent event = new OrderCreatedEvent(
+                outboxEvent.getId(),
                 savedOrder.getId(),
                 user.getId(),
                 product.getId(),
