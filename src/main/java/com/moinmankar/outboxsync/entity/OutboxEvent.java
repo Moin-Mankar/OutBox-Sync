@@ -16,7 +16,10 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "outbox_event")
+@Table(
+        name = "outbox_event",
+        indexes = @Index(name = "idx_outbox_event_status", columnList = "status")
+)
 public class OutboxEvent {
 
     @Id

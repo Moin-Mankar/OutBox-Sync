@@ -43,6 +43,9 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    private Long version;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

@@ -5,6 +5,7 @@ import com.moinmankar.outboxsync.dto.request.CreateUserRequest;
 import com.moinmankar.outboxsync.dto.response.UserResponse;
 import com.moinmankar.outboxsync.entity.User;
 import com.moinmankar.outboxsync.enums.UserRole;
+import com.moinmankar.outboxsync.exception.BusinessException;
 import com.moinmankar.outboxsync.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class UserService {
     public UserResponse createUser(CreateUserRequest request) {
 
         if (userRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("Email already exists");
+            throw new BusinessException("Email already exists");
         }
 
         User user = new User();

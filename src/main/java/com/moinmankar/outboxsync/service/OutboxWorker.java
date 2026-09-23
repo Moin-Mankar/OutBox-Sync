@@ -20,6 +20,8 @@ public class OutboxWorker {
 
     private static final int MAX_RETRY = 5;
 
+    private static final long STALE_PROCESSING_TIMEOUT_SECONDS = 60;
+
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaProducerService kafkaProducerService;
 
@@ -33,6 +35,8 @@ public class OutboxWorker {
 
     @Scheduled(fixedDelay = 5000)
     public void processOutboxEvents() {
+
+        reclaimStaleProcessingEvents();
 
         List<OutboxEvent> events =
                 outboxEventRepository.findByStatus(EventStatus.PENDING);
@@ -90,6 +94,28 @@ public class OutboxWorker {
             }
 
             outboxEventRepository.save(event);
+        }
+    }
+
+    private void reclaimStaleProcessingEvents() {
+
+        LocalDateTime cutoff =
+                LocalDateTime.now().minusSeconds(STALE_PROCESSING_TIMEOUT_SECONDS);
+
+        List<OutboxEvent> staleEvents =
+                outboxEventRepository.findByStatusAndLastAttemptedAtBefore(
+                        EventStatus.PROCESSING,
+                        cutoff
+                );
+
+        for (OutboxEvent event : staleEvents) {
+            event.setStatus(EventStatus.PENDING);
+            outboxEventRepository.save(event);
+
+            log.warn(
+                    "[OUTBOX] Reclaimed stale PROCESSING event {}",
+                    event.getId()
+            );
         }
     }
 }

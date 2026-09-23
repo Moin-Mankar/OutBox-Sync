@@ -9,6 +9,8 @@ import com.moinmankar.outboxsync.dto.response.OrderResponse;
 import com.moinmankar.outboxsync.entity.Product;
 import com.moinmankar.outboxsync.entity.User;
 import com.moinmankar.outboxsync.enums.EventType;
+import com.moinmankar.outboxsync.exception.BusinessException;
+import com.moinmankar.outboxsync.exception.ResourceNotFoundException;
 import com.moinmankar.outboxsync.entity.Order;
 import com.moinmankar.outboxsync.entity.OutboxEvent;
 import com.moinmankar.outboxsync.enums.OrderStatus;
@@ -17,6 +19,7 @@ import com.moinmankar.outboxsync.repository.OutboxEventRepository;
 
 import com.moinmankar.outboxsync.repository.ProductRepository;
 import com.moinmankar.outboxsync.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,38 +34,41 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final ActivityLogService activityLogService;
 
 
-    public OrderService(OrderRepository orderRepository, OutboxEventRepository outboxEventRepository, ProductRepository productRepository, UserRepository userRepository, ObjectMapper objectMapper) {
+    public OrderService(OrderRepository orderRepository, OutboxEventRepository outboxEventRepository, ProductRepository productRepository, UserRepository userRepository, ObjectMapper objectMapper, ActivityLogService activityLogService) {
         this.orderRepository = orderRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional
+    @CacheEvict(value = "products", key = "#request.productId()")
     public OrderResponse createOrder(
             String email,
             CreateOrderRequest request
     ) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Product product= productRepository.findById(request.productId()).orElseThrow(()->
-                new RuntimeException("Product not Found"));
+                new ResourceNotFoundException("Product not found"));
 
         if(!product.isActive()){
-            throw  new RuntimeException(" Product is not Active");
+            throw  new BusinessException("Product is not active");
         }
 
         if(request.quantity() ==null || request.quantity()<=0){
-            throw new RuntimeException("Quantity cannot be Zero");
+            throw new BusinessException("Quantity cannot be zero");
         }
 
         if(product.getStockQuantity() < request.quantity()){
-            throw new RuntimeException("Insufficient stock");
+            throw new BusinessException("Insufficient stock");
         }
 
         BigDecimal totalAmount = product.getPrice().multiply(BigDecimal.valueOf(request.quantity()));
@@ -79,9 +85,16 @@ public class OrderService {
                 product.getStockQuantity() - request.quantity()
         );
 
-        Product savedProduct = productRepository.save(product);
+        productRepository.save(product);
 
         Order savedOrder = orderRepository.save(order);
+
+        activityLogService.log(
+                user.getId(),
+                "ORDER_CREATED",
+                "ORDER",
+                savedOrder.getId()
+        );
 
         OutboxEvent outboxEvent = new OutboxEvent();
 
