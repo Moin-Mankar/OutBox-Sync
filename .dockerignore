@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+.vscode
+target
+*.log
+.env
+.env.*
+docker-compose.yml
+
+application-local.properties
+
+box-sync-5011f-firebase-service.json

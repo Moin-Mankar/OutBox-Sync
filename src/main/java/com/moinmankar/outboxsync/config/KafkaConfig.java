@@ -9,14 +9,14 @@ public class KafkaConfig {
 
     @Bean
     public NewTopic orderEventsTopic() {
-        return new NewTopic("order-events", 3, (short) 1);
+        return new NewTopic("order-events", 2, (short) 1);
     }
 
     @Bean
     public NewTopic orderEventsDltTopic() {
         return new NewTopic(
                 "order-events.DLT",
-                3,
+                2,
                 (short) 1
         );
     }

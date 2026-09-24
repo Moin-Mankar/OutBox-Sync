@@ -37,5 +37,6 @@ firebase-service-account.json
 box-sync-5011f-firebase-service.json
 
 
-src/main/resources/application.properties
 src/main/resources/application-local.properties
+
+docker.env
